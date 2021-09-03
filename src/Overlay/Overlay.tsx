@@ -3,23 +3,36 @@ import {
   View,
   StyleSheet,
   Platform,
-  TouchableWithoutFeedback,
+  Pressable,
   Modal,
   ModalProps,
   ViewStyle,
   StyleProp,
 } from 'react-native';
-import { RneFunctionComponent } from '../helpers';
+import { InlinePressableProps, RneFunctionComponent } from '../helpers';
 
-export type OverlayProps = ModalProps & {
+export type OverlayProps = Omit<ModalProps, 'visible'> & {
+  /** If true, the overlay is visible. */
   isVisible: boolean;
-  backdropStyle?: StyleProp<ViewStyle>;
-  overlayStyle?: StyleProp<ViewStyle>;
-  onBackdropPress?(): void;
-  fullScreen?: boolean;
-  ModalComponent?: typeof React.Component;
-};
 
+  /** Style of the backdrop container. */
+  backdropStyle?: StyleProp<ViewStyle>;
+
+  /** Style of the actual overlay. */
+  overlayStyle?: StyleProp<ViewStyle>;
+
+  /** Handler for backdrop press (only works when `fullscreen` is false). */
+  onBackdropPress?(): void;
+
+  /** If set to true, the modal will take up the entire screen width and height. */
+  fullScreen?: boolean;
+
+  /** Override React Native `Modal` component (usable for web-platform). */
+  ModalComponent?: typeof React.Component;
+} & Omit<InlinePressableProps, 'onPress'>; // used as onBackdropPress
+
+/** The Overlay is a view that floats above an app’s content.
+ * Overlays are an easy way to inform or request information from the user. */
 export const Overlay: RneFunctionComponent<OverlayProps> = ({
   children,
   backdropStyle,
@@ -28,6 +41,10 @@ export const Overlay: RneFunctionComponent<OverlayProps> = ({
   fullScreen = false,
   ModalComponent = Modal,
   isVisible,
+  pressableProps,
+  onPressOut,
+  onPressIn,
+  onLongPress,
   ...rest
 }) => (
   <ModalComponent
@@ -36,18 +53,21 @@ export const Overlay: RneFunctionComponent<OverlayProps> = ({
     transparent
     {...rest}
   >
-    <TouchableWithoutFeedback
+    <Pressable
+      style={StyleSheet.flatten([styles.backdrop, backdropStyle])}
       onPress={onBackdropPress}
       testID="RNE__Overlay__backdrop"
+      {...pressableProps}
+      {...{ onPressOut, onPressIn, onLongPress }}
+    />
+
+    <View
+      testID="RNE__Overlay__Container"
+      style={styles.container}
+      pointerEvents="box-none"
     >
       <View
-        testID="backdrop"
-        style={StyleSheet.flatten([styles.backdrop, backdropStyle])}
-      />
-    </TouchableWithoutFeedback>
-
-    <View style={styles.container} pointerEvents="box-none">
-      <View
+        testID="RNE__Overlay"
         style={StyleSheet.flatten([
           styles.overlay,
           fullScreen && styles.fullscreen,

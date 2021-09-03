@@ -3,45 +3,79 @@ import {
   StyleSheet,
   Text,
   View,
-  TouchableOpacity,
+  Pressable,
   TextProps,
   StyleProp,
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { renderNode, RneFunctionComponent } from '../helpers';
+import {
+  InlinePressableProps,
+  renderNode,
+  RneFunctionComponent,
+} from '../helpers';
 
 export type BadgeProps = {
+  /** Style for the container. */
   containerStyle?: StyleProp<ViewStyle>;
-  badgeStyle?: StyleProp<ViewStyle>;
-  textProps?: TextProps;
-  textStyle?: StyleProp<TextStyle>;
-  value?: React.ReactNode;
-  onPress?: (...args: any[]) => any;
-  Component?: typeof React.Component;
-  status?: 'primary' | 'success' | 'warning' | 'error';
-};
 
+  /** Additional styling for badge (background) view component. */
+  badgeStyle?: StyleProp<ViewStyle>;
+
+  /** Extra props for text component. */
+  textProps?: TextProps;
+
+  /** Extra styling for icon component. */
+  textStyle?: StyleProp<TextStyle>;
+
+  /** Text value to be displayed by badge, defaults to empty. */
+  value?: React.ReactNode;
+
+  /** Custom component to replace the badge outer component. */
+  Component?: typeof React.Component;
+
+  /** Determines color of the indicator. */
+  status?: 'primary' | 'success' | 'warning' | 'error';
+} & InlinePressableProps;
+
+/** Badges are small components typically used to communicate a numerical value or indicate the status of an item to the user. */
 export const Badge: RneFunctionComponent<BadgeProps> = ({
   containerStyle,
   textStyle,
   textProps,
   badgeStyle,
   onPress,
-  Component = onPress ? TouchableOpacity : View,
+  onLongPress,
+  onPressOut,
+  onPressIn,
+  Component = onPress || onLongPress || onPressIn || onPressOut
+    ? Pressable
+    : View,
   value,
   theme,
   status = 'primary',
-  ...attributes
+  pressableProps,
+  ...rest
 }) => {
   const element = renderNode(Text, value, {
     style: StyleSheet.flatten([styles.text, textStyle && textStyle]),
     ...textProps,
   });
   return (
-    <View style={StyleSheet.flatten([containerStyle && containerStyle])}>
+    <View
+      testID="RNE__Badge__Container"
+      style={StyleSheet.flatten([containerStyle && containerStyle])}
+    >
       <Component
-        {...attributes}
+        {...{
+          onPress,
+          onLongPress,
+          onPressOut,
+          onPressIn,
+          ...pressableProps,
+          ...rest,
+        }}
+        testID="RNE__Badge"
         style={StyleSheet.flatten([
           {
             alignSelf: 'center',
@@ -57,7 +91,6 @@ export const Badge: RneFunctionComponent<BadgeProps> = ({
           !element && styles.miniBadge,
           badgeStyle && badgeStyle,
         ])}
-        onPress={onPress}
       >
         {element}
       </Component>

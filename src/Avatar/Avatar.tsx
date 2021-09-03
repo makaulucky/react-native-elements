@@ -4,7 +4,7 @@ import {
   Text,
   Image as RNImage,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   StyleProp,
   ViewStyle,
   TextStyle,
@@ -12,11 +12,15 @@ import {
   ImageURISource,
   ImageStyle,
 } from 'react-native';
-import { renderNode, RneFunctionComponent } from '../helpers';
+import {
+  InlinePressableProps,
+  renderNode,
+  RneFunctionComponent,
+} from '../helpers';
 import Icon, { IconObject } from '../Icon';
 import Image, { ImageProps } from '../Image';
 
-const avatarSizes = {
+export const avatarSizes = {
   small: 34,
   medium: 50,
   large: 75,
@@ -27,31 +31,72 @@ type AvatarIcon = IconObject & {
   iconStyle?: StyleProp<TextStyle>;
 };
 
-export type AvatarBaseProps = {
+export type AvatarProps = {
+  /** Component for enclosing element (eg: TouchableHighlight, View, etc). */
   Component?: typeof React.Component;
-  onPress?(): void;
-  onLongPress?(): void;
-  containerStyle?: StyleProp<ViewStyle>;
-  source?: ImageSourcePropType;
-  avatarStyle?: ImageStyle;
-  rounded?: boolean;
-  title?: string;
-  titleStyle?: StyleProp<TextStyle>;
-  overlayContainerStyle?: StyleProp<TextStyle>;
-  activeOpacity?: number;
-  icon?: AvatarIcon;
-  iconStyle?: StyleProp<TextStyle>;
-  size?: ('small' | 'medium' | 'large' | 'xlarge') | number;
-  placeholderStyle?: StyleProp<ViewStyle>;
-  renderPlaceholderContent?: React.ReactElement<{}>;
-  imageProps?: Partial<ImageProps>;
-  ImageComponent?: React.ComponentClass;
-};
 
-export const AvatarBase: RneFunctionComponent<AvatarBaseProps> = ({
+  /** Callback function when pressing component. */
+  onPress?(): void;
+
+  /** Callback function when long pressing component. */
+  onLongPress?(): void;
+
+  /** Styling for outer container. */
+  containerStyle?: StyleProp<ViewStyle>;
+
+  /** Image source to be displayed on avatar. */
+  source?: ImageSourcePropType;
+
+  /** Style for avatar image. */
+  avatarStyle?: ImageStyle;
+
+  /** Makes the avatar circular. */
+  rounded?: boolean;
+
+  /** Renders title in the placeholder. */
+  title?: string;
+
+  /** Style for the title. */
+  titleStyle?: StyleProp<TextStyle>;
+
+  /** Style for the view outside image or icon. */
+  overlayContainerStyle?: StyleProp<TextStyle>;
+
+  /** Opacity when pressed. */
+  activeOpacity?: number;
+
+  /** Displays an icon as the main content of the Avatar. **Cannot be used alongside title**. When used with the `source` prop it will be used as the placeholder. */
+  icon?: AvatarIcon;
+
+  /** Extra styling for icon component. */
+  iconStyle?: StyleProp<TextStyle>;
+
+  /** Size of the avatar. */
+  size?: ('small' | 'medium' | 'large' | 'xlarge') | number;
+
+  /** Adds style to the placeholder wrapper. */
+  placeholderStyle?: StyleProp<ViewStyle>;
+
+  /** Custom placeholder element (by default, it's the title). */
+  renderPlaceholderContent?: React.ReactElement<{}>;
+
+  /** Optional properties to pass to the avatar e.g "resizeMode". */
+  imageProps?: Partial<ImageProps>;
+
+  /** Custom ImageComponent for Avatar. */
+  ImageComponent?: React.ComponentClass;
+} & InlinePressableProps;
+
+/** Avatars are found all over ui design from lists to profile screens.
+ * They are commonly used to represent a user and can contain photos, icons, or even text. */
+export const Avatar: RneFunctionComponent<AvatarProps> = ({
   onPress,
   onLongPress,
-  Component = onPress || onLongPress ? TouchableOpacity : View,
+  onPressIn,
+  onPressOut,
+  Component = onPress || onLongPress || onPressIn || onPressOut
+    ? Pressable
+    : View,
   containerStyle,
   icon,
   iconStyle,
@@ -67,10 +112,11 @@ export const AvatarBase: RneFunctionComponent<AvatarBaseProps> = ({
   renderPlaceholderContent,
   ImageComponent = RNImage,
   children,
-  ...attributes
+  pressableProps,
+  ...rest
 }) => {
-  let width = avatarSizes.small;
-  width = typeof size === 'number' ? size : avatarSizes[size];
+  const width =
+    typeof size === 'number' ? size : avatarSizes[size] || avatarSizes.small;
 
   const height = width;
   const titleSize = width / 2;
@@ -94,9 +140,9 @@ export const AvatarBase: RneFunctionComponent<AvatarBaseProps> = ({
       <Icon
         style={StyleSheet.flatten([iconStyle && iconStyle])}
         color={icon.color || 'white'}
-        name={icon.name || 'user'}
+        name={icon.name || 'account'}
         size={icon.size || iconSize}
-        type={icon.type && icon.type}
+        type={icon.type || 'material-community'}
       />
     ));
 
@@ -114,17 +160,23 @@ export const AvatarBase: RneFunctionComponent<AvatarBaseProps> = ({
 
   return (
     <Component
-      onPress={onPress}
-      onLongPress={onLongPress}
       style={StyleSheet.flatten([
         styles.container,
         { height, width },
         rounded && { borderRadius: width / 2 },
         containerStyle,
       ])}
-      {...attributes}
+      {...{
+        onPress,
+        onLongPress,
+        onPressIn,
+        onPressOut,
+        ...pressableProps,
+        ...rest,
+      }}
     >
       <Image
+        testID="RNE__Avatar__Image"
         placeholderStyle={StyleSheet.flatten([
           placeholderStyle,
           hidePlaceholder && styles.hiddenPlaceholderStyle,
@@ -168,4 +220,4 @@ const styles = StyleSheet.create({
   },
 });
 
-AvatarBase.displayName = 'AvatarBase';
+Avatar.displayName = 'Avatar';

@@ -3,7 +3,7 @@ import {
   View,
   StyleSheet,
   Platform,
-  TouchableHighlight,
+  Pressable,
   ActivityIndicator,
   ViewStyle,
   StyleProp,
@@ -12,7 +12,11 @@ import {
 import Icon from '../Icon';
 import Text from '../Text';
 import fonts from '../config/fonts';
-import { RneFunctionComponent } from '../helpers';
+import {
+  androidRipple,
+  InlinePressableProps,
+  RneFunctionComponent,
+} from '../helpers';
 
 const colors = {
   'github-alt': '#000000',
@@ -48,6 +52,8 @@ const colors = {
   whatsapp: '#075e54',
   wordpress: '#21759b',
   youtube: '#bb0000',
+  microsoft: '#46A4F2',
+  reddit: '#ed452f',
 };
 
 export type SocialMediaType =
@@ -78,32 +84,70 @@ export type SocialMediaType =
   | 'angellist'
   | 'codepen'
   | 'weibo'
-  | 'vk';
+  | 'vk'
+  | 'microsoft'
+  | 'reddit';
 
 export type SocialIconProps = {
+  /** Type of button. */
   Component?: typeof React.Component;
-  type?: SocialMediaType;
-  button?: boolean;
-  onPress?(): void;
-  onLongPress?(): void;
-  iconType?: string;
-  iconStyle?: StyleProp<ViewStyle>;
-  style?: StyleProp<ViewStyle>;
-  iconColor?: string;
-  underlayColor?: string;
-  title?: string;
-  raised?: boolean;
-  disabled?: boolean;
-  loading?: boolean;
-  activityIndicatorStyle?: StyleProp<ViewStyle>;
-  small?: string;
-  iconSize?: number;
-  light?: boolean;
-  fontWeight?: string;
-  fontStyle?: StyleProp<TextStyle>;
-  fontFamily?: string;
-};
 
+  /** Social media type. */
+  type?: SocialMediaType;
+
+  /** Creates button with a social icon. */
+  button?: boolean;
+
+  /** Type of icon set. [Supported sets here](icon#available-icon-sets). */
+  iconType?: string;
+
+  /** Extra styling for icon component. */
+  iconStyle?: StyleProp<ViewStyle>;
+
+  /** Adds styling to the button. */
+  style?: StyleProp<ViewStyle>;
+
+  /** Specify the color of the icon. */
+  iconColor?: string;
+
+  /** Add Underlay color. */
+  underlayColor?: string;
+
+  /** Title if made into a button. */
+  title?: string;
+
+  /** Raised adds a drop shadow, set to false to remove. */
+  raised?: boolean;
+
+  /** Disables the button, if true. */
+  disabled?: boolean;
+
+  /** Shows loading indicator. */
+  loading?: boolean;
+
+  /** Style to render when in loading state. */
+  activityIndicatorStyle?: StyleProp<ViewStyle>;
+
+  /** Decides the size of the activity indicator. */
+  small?: string;
+
+  /** Specify the size of the icon. */
+  iconSize?: number;
+
+  /** Reverses icon color scheme, setting background to white and icon to primary color. */
+  light?: boolean;
+
+  /** Specify font weight of title if set as a button with a title. */
+  fontWeight?: string;
+
+  /** Specify text styling. */
+  fontStyle?: StyleProp<TextStyle>;
+
+  /** Specify different font family. */
+  fontFamily?: string;
+} & InlinePressableProps;
+
+/** SocialIcons are visual cues to online and social media networks. We offer a varied range of social icons. */
 export const SocialIcon: RneFunctionComponent<SocialIconProps> = ({
   activityIndicatorStyle,
   button = false,
@@ -119,23 +163,37 @@ export const SocialIcon: RneFunctionComponent<SocialIconProps> = ({
   loading,
   onLongPress,
   onPress,
-  Component = onPress || onLongPress ? TouchableHighlight : View,
+  onPressOut,
+  onPressIn,
+  Component = onPress || onLongPress || onPressIn || onPressOut
+    ? Pressable
+    : View,
   raised = true,
   small,
   style,
   title,
   type,
   underlayColor,
+  pressableProps,
   ...attributes
 }) => {
   const shouldShowExpandedButton = button && title;
 
   return (
     <Component
-      {...attributes}
+      {...{
+        onLongPress,
+        onPress,
+        onPressOut,
+        onPressIn,
+        android_ripple: androidRipple(
+          light ? 'white' : underlayColor || (type && colors[type])
+        ),
+        ...pressableProps,
+        ...attributes,
+      }}
+      testID="RNE_SocialIcon"
       underlayColor={light ? 'white' : underlayColor || (type && colors[type])}
-      onLongPress={disabled ? null : onLongPress}
-      onPress={disabled ? null : onPress}
       disabled={disabled}
       style={StyleSheet.flatten([
         raised && styles.raised,
@@ -150,6 +208,11 @@ export const SocialIcon: RneFunctionComponent<SocialIconProps> = ({
             borderRadius: iconSize * 2,
           },
         { backgroundColor: type && colors[type] },
+        {
+          width: iconSize * 2 + 4,
+          height: iconSize * 2 + 4,
+          borderRadius: iconSize * 2,
+        },
         light && { backgroundColor: 'white' },
         style && style,
       ])}
@@ -157,6 +220,7 @@ export const SocialIcon: RneFunctionComponent<SocialIconProps> = ({
       <View style={styles.wrapper}>
         {(shouldShowExpandedButton || !loading) && (
           <Icon
+            testID="RNE_Icon"
             iconStyle={StyleSheet.flatten([iconStyle && iconStyle])}
             color={light ? type && colors[type] : iconColor}
             name={type as SocialMediaType}
@@ -182,6 +246,7 @@ export const SocialIcon: RneFunctionComponent<SocialIconProps> = ({
 
         {loading && (
           <ActivityIndicator
+            testID="RNE_ActivityIndicator"
             animating
             style={StyleSheet.flatten([
               styles.activityIndicatorStyle,

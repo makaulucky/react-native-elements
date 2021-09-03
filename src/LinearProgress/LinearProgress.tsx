@@ -10,26 +10,52 @@ import {
 import Color from 'color';
 import { RneFunctionComponent } from '../helpers';
 
+/**
+ * Keep value between 0 and 1
+ */
+const clamp = (value: number): number => Math.max(0, Math.min(value, 1));
+
 export type LinearProgressProps = ViewProps & {
+  /** The value of the progress indicator for the determinate variant. Value between 0 and 1. */
   value?: number;
+
+  /** Type of button. */
   variant?: 'determinate' | 'indeterminate';
+
+  /** Color for linear progress. */
   color?: 'primary' | 'secondary' | string;
+
+  /** Track color for linear progress. */
   trackColor?: string;
+
+  /** Add additional styling for linear progress component. */
   style?: StyleProp<ViewStyle>;
+
+  /** Animation duration */
+  animation?:
+    | {
+        duration?: number;
+      }
+    | boolean;
 };
 
+/** Progress indicators inform users about the status of ongoing processes, such as loading an app, submitting a form, or saving updates.
+ * They communicate an app’s state and indicate available actions, such as whether users can navigate away from the current screen.
+ * Also receives all [View](https://reactnative.dev/docs/view#props) props */
 export const LinearProgress: RneFunctionComponent<LinearProgressProps> = ({
-  value = 0,
-  variant = 'indeterminate',
+  value,
+  /** If value is given then variant default as determinate */
+  variant = value === undefined ? 'indeterminate' : 'determinate',
   color = 'secondary',
   style,
   theme,
   trackColor,
-  ...props
+  animation = { duration: 2000 },
+  ...rest
 }) => {
   const [width, setWidth] = React.useState<number>(0);
 
-  const { current: animation } = React.useRef<Animated.Value>(
+  const { current: transition } = React.useRef<Animated.Value>(
     new Animated.Value(0)
   );
 
@@ -37,24 +63,23 @@ export const LinearProgress: RneFunctionComponent<LinearProgressProps> = ({
 
   const startAnimation = React.useCallback(() => {
     if (variant === 'indeterminate') {
-      intermediate.current = Animated.timing(animation, {
-        duration: 2000,
+      intermediate.current = Animated.timing(transition, {
+        duration: typeof animation !== 'boolean' ? animation.duration : 2000,
         toValue: 1,
         useNativeDriver: true,
         isInteraction: false,
       });
-      animation.setValue(0);
-
+      transition.setValue(0);
       Animated.loop(intermediate.current).start();
     } else {
-      Animated.timing(animation, {
-        duration: 1000,
+      Animated.timing(transition, {
+        duration: typeof animation !== 'boolean' ? animation.duration : 1000,
         toValue: value || 0,
         useNativeDriver: Platform.OS !== 'web',
         isInteraction: false,
       }).start();
     }
-  }, [animation, variant, value]);
+  }, [variant, transition, animation, value]);
 
   const tintColor =
     color === 'secondary' || color === 'primary'
@@ -65,19 +90,22 @@ export const LinearProgress: RneFunctionComponent<LinearProgressProps> = ({
     trackColor || Color(tintColor).alpha(0.4).rgb().string();
 
   React.useEffect(() => {
-    startAnimation();
-  }, [startAnimation, value]);
+    if (animation) {
+      startAnimation();
+    }
+  }, [animation, startAnimation]);
 
   return (
     <View
+      testID="RNE__LinearProgress_Bar"
       accessible
       accessibilityRole="progressbar"
       accessibilityValue={{
-        now: value,
+        now: clamp(value),
         min: 0,
         max: 1,
       }}
-      {...props}
+      {...rest}
       onLayout={(e) => {
         setWidth(e.nativeEvent.layout.width);
       }}
@@ -87,44 +115,57 @@ export const LinearProgress: RneFunctionComponent<LinearProgressProps> = ({
           overflow: 'hidden',
           width: '100%',
           backgroundColor: trackTintColor,
+          position: 'relative',
         },
         style,
       ]}
     >
-      <Animated.View
-        style={{
-          transform: [
-            {
-              translateX: animation.interpolate(
-                variant === 'indeterminate'
-                  ? {
-                      inputRange: [0, 1],
-                      outputRange: [-width, 0.5 * width],
-                    }
-                  : {
-                      inputRange: [0, 1],
-                      outputRange: [-0.5 * width, 0],
-                    }
-              ),
-            },
-            {
-              scaleX: animation.interpolate(
-                variant === 'indeterminate'
-                  ? {
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0.0001, 1, 0.001],
-                    }
-                  : {
-                      inputRange: [0, 1],
-                      outputRange: [0.0001, 1],
-                    }
-              ),
-            },
-          ],
-          backgroundColor: tintColor as string,
-          flex: 1,
-        }}
-      />
+      {animation ? (
+        <Animated.View
+          testID="RNE__LinearProgress_Progress"
+          style={{
+            transform: [
+              {
+                translateX: transition.interpolate(
+                  variant === 'indeterminate'
+                    ? {
+                        inputRange: [0, 1],
+                        outputRange: [-width, 0.5 * width],
+                      }
+                    : {
+                        inputRange: [0, 1],
+                        outputRange: [-0.5 * width, 0],
+                      }
+                ),
+              },
+              {
+                scaleX: transition.interpolate(
+                  variant === 'indeterminate'
+                    ? {
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0.0001, 1, 0.001],
+                      }
+                    : {
+                        inputRange: [0, 1],
+                        outputRange: [0.0001, 1],
+                      }
+                ),
+              },
+            ],
+            backgroundColor: tintColor as string,
+            flex: 1,
+          }}
+        />
+      ) : (
+        <View
+          testID="RNE__LinearProgress_Progress"
+          style={{
+            flex: 1,
+            width: width * clamp(value || 0),
+            backgroundColor: tintColor as string,
+          }}
+        />
+      )}
     </View>
   );
 };

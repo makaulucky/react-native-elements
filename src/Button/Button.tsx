@@ -1,23 +1,23 @@
+import Color from 'color';
 import React, { useCallback, useEffect } from 'react';
 import {
-  View,
-  Text,
-  TouchableNativeFeedback,
-  TouchableOpacity,
   ActivityIndicator,
-  Platform,
-  StyleSheet,
-  TouchableOpacityProps,
-  TouchableNativeFeedbackProps,
-  StyleProp,
-  ViewStyle,
   ActivityIndicatorProps,
+  Platform,
+  StyleProp,
+  StyleSheet,
+  Text,
   TextStyle,
+  TouchableNativeFeedback,
+  TouchableNativeFeedbackProps,
+  TouchableOpacity,
+  TouchableOpacityProps,
+  View,
+  ViewStyle,
 } from 'react-native';
-import Color from 'color';
-import { renderNode, color, RneFunctionComponent } from '../helpers';
-import Icon, { IconNode } from '../Icon';
 import { Theme } from '../config/theme';
+import { color, renderNode, RneFunctionComponent } from '../helpers';
+import Icon, { IconNode } from '../Icon';
 import { TextProps } from '../Text';
 
 const defaultLoadingProps = (
@@ -28,30 +28,79 @@ const defaultLoadingProps = (
   size: 'small',
 });
 
+const positionStyle = {
+  top: 'column',
+  bottom: 'column-reverse',
+  left: 'row',
+  right: 'row-reverse',
+};
+
 export type ButtonProps = TouchableOpacityProps &
   TouchableNativeFeedbackProps & {
+    /** Add button title. */
     title?: string | React.ReactElement<{}>;
+
+    /** Add additional styling for title component. */
     titleStyle?: StyleProp<TextStyle>;
+
+    /** Add additional props for Text component. */
     titleProps?: TextProps;
+
+    /** Add additional styling for button component. */
     buttonStyle?: StyleProp<ViewStyle>;
+
+    /** Type of button. */
     type?: 'solid' | 'clear' | 'outline';
+
+    /** Prop to display a loading spinner. */
     loading?: boolean;
+
+    /** Add additional styling for loading component. */
     loadingStyle?: StyleProp<ViewStyle>;
+
+    /** Add additional props for ActivityIndicator component. */
     loadingProps?: ActivityIndicatorProps;
+
+    /** Styling for Component container. */
     containerStyle?: StyleProp<ViewStyle>;
+
+    /** Displays a centered icon (when no title) or to the left (with text). (can be used along with iconRight as well). Can be an object or a custom component. */
     icon?: IconNode;
+
+    /** Styling for Icon Component container. */
     iconContainerStyle?: StyleProp<ViewStyle>;
+
+    /** Displays Icon to the right of title. Needs to be used along with `icon` prop. */
     iconRight?: boolean;
+
+    /** Displays a linear gradient. See [usage](#lineargradient-usage). */
     linearGradientProps?: object;
+
+    /** Component for user interaction. */
     TouchableComponent?: typeof React.Component;
+
+    /** Component for container. */
     ViewComponent?: typeof React.Component;
+
+    /** Disables user interaction. */
     disabled?: boolean;
+
+    /** Style of the button when disabled. */
     disabledStyle?: StyleProp<ViewStyle>;
+
+    /** Style of the title when disabled. */
     disabledTitleStyle?: StyleProp<TextStyle>;
+
+    /** Add raised button styling (optional). Has no effect if `type="clear"`. */
     raised?: boolean;
+
+    /** Displays Icon to the position mentioned. Needs to be used along with `icon` prop. */
     iconPosition?: 'left' | 'right' | 'top' | 'bottom';
   };
 
+/** Buttons are touchable elements used to interact with the screen and to perform and operation.
+ * They may display text, icons, or both. Buttons can be styled with several props to look a specific way.
+ * Also receives all [TouchableNativeFeedback](http://reactnative.dev/docs/touchablenativefeedback.html#props) (Android) or [TouchableOpacity](http://reactnative.dev/docs/touchableopacity.html#props) (iOS) props. */
 export const Button: RneFunctionComponent<ButtonProps> = ({
   TouchableComponent,
   containerStyle,
@@ -75,7 +124,7 @@ export const Button: RneFunctionComponent<ButtonProps> = ({
   ViewComponent = View,
   theme,
   iconPosition = 'left',
-  ...attributes
+  ...rest
 }) => {
   useEffect(() => {
     if (linearGradientProps && !ViewComponent) {
@@ -87,11 +136,11 @@ export const Button: RneFunctionComponent<ButtonProps> = ({
 
   const handleOnPress = useCallback(
     (evt) => {
-      if (!loading) {
+      if (!loading && !disabled) {
         onPress(evt);
       }
     },
-    [loading, onPress]
+    [loading, onPress, disabled]
   );
 
   // Refactor to Pressable
@@ -131,23 +180,15 @@ export const Button: RneFunctionComponent<ButtonProps> = ({
     disabled: !!disabled,
     busy: !!loading,
   };
-  const positionStyle = {
-    top: 'column',
-    bottom: 'column-reverse',
-    left: 'row',
-    right: 'row-reverse',
-  };
 
   return (
     <View
       style={[
         styles.container,
-        {
-          borderRadius: 3 || styles.container.borderRadius,
-        },
         containerStyle,
         raised && !disabled && type !== 'clear' && styles.raised,
       ]}
+      testID="RNE_BUTTON_WRAPPER"
     >
       <TouchableComponentInternal
         onPress={handleOnPress}
@@ -157,7 +198,7 @@ export const Button: RneFunctionComponent<ButtonProps> = ({
         accessibilityState={accessibilityState}
         disabled={disabled}
         background={background}
-        {...attributes}
+        {...rest}
       >
         <ViewComponent
           {...linearGradientProps}
@@ -165,6 +206,8 @@ export const Button: RneFunctionComponent<ButtonProps> = ({
             styles.button,
             styles.buttonOrientation,
             {
+              // flex direction based on iconPosition
+              // if iconRight is true, default to right
               flexDirection:
                 positionStyle[iconRight ? 'right' : iconPosition] || 'row',
             },
@@ -188,6 +231,7 @@ export const Button: RneFunctionComponent<ButtonProps> = ({
             disabled && disabledStyle,
           ])}
         >
+          {/* Activity Indicator on loading */}
           {loading && (
             <ActivityIndicator
               style={StyleSheet.flatten([styles.loading, loadingStyle])}
@@ -196,6 +240,7 @@ export const Button: RneFunctionComponent<ButtonProps> = ({
               {...loadingProps}
             />
           )}
+          {/* Button Icon, hide Icon while loading */}
           {!loading &&
             icon &&
             renderNode(Icon, icon, {
@@ -204,7 +249,7 @@ export const Button: RneFunctionComponent<ButtonProps> = ({
                 iconContainerStyle,
               ]),
             })}
-
+          {/* Title for Button, hide while loading */}
           {!loading &&
             !!title &&
             renderNode(Text, title, {
